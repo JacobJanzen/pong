@@ -1,6 +1,12 @@
-.PHONY: all temp
+.PHONY: all temp display
 
-all: temp
+all: temp display ../build
 
-temp:
+temp: 
 	$(MAKE) -C temp/
+
+display:
+	$(MAKE) -C display/
+
+../build:
+	mkdir -p ../build
