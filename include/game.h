@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#define PADDLE_HEIGHT 1.0 / 6.0
+
 typedef struct GAME_STATE {
     double l_paddle_pos;
 } game_state_t;

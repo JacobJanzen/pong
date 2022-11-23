@@ -1,10 +1,12 @@
 #include "../../include/display.h"
 #include "../../include/game.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_events.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#define PADDLE_HEIGHT(canvas_height) canvas_height / 6
-#define PADDLE_WIDTH(canvas_width) canvas_width / 40
+#define DISPLAY_PADDLE_HEIGHT(canvas_height) canvas_height *PADDLE_HEIGHT
+#define DISPLAY_PADDLE_WIDTH(canvas_width) canvas_width / 40
 
 #define PADDLE_X_POS(canvas_width) canvas_width / 30
 
@@ -62,16 +64,17 @@ void render_line(SDL_Renderer *renderer, int width, int height) {
 void render_paddle(SDL_Renderer *renderer, int width, int height, bool isLeft,
                    double pos) {
 
-    int xPos = isLeft ? PADDLE_X_POS(width)
-                      : width - PADDLE_X_POS(width) - PADDLE_WIDTH(width);
+    int xPos = isLeft
+                   ? PADDLE_X_POS(width)
+                   : width - PADDLE_X_POS(width) - DISPLAY_PADDLE_WIDTH(width);
     int yPos = (int)(height * pos) - height / 12;
 
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
     SDL_Rect lPaddle = {
         xPos,
         yPos,
-        PADDLE_WIDTH(width),
-        PADDLE_HEIGHT(height),
+        DISPLAY_PADDLE_WIDTH(width),
+        DISPLAY_PADDLE_HEIGHT(height),
     };
     SDL_RenderFillRect(renderer, &lPaddle);
 }
@@ -83,12 +86,30 @@ void main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
 
     SDL_UpdateWindowSurface(window);
 
+    game_update_t *update = malloc(sizeof(game_update_t));
+    if (!update) {
+        perror("failed to instantiate update struct");
+        return;
+    }
+
     while (true) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT)
                 return;
+            else if (e.type == SDL_KEYDOWN) {
+                switch (e.key.keysym.sym) {
+                case SDLK_w:
+                    update->l_paddle_dir = -1;
+                    break;
+                case SDLK_s:
+                    update->l_paddle_dir = 1;
+                    break;
+                }
+            }
         }
 
+        update_state(update);
+        update->l_paddle_dir = 0;
         game_state_t *game_state = get_game_state();
         if (!game_state) {
             perror("failed to get game state");
