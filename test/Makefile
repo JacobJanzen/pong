@@ -1,10 +1,10 @@
-TEST_DEPENDENCIES=../build/test_temp.o 
-DEPENDENCIES=../build/temp.o
+TEST_DEPENDENCIES=../build/test_game.o
+DEPENDENCIES=../build/game.o
 
-.PHONY: all temp
+.PHONY: all game
 
-all: temp
+all: game test.c ${TEST_DEPENDENCIES} ${DEPENDENCIES}
 	${CC} -o ../build/test test.c ${TEST_DEPENDENCIES} ${DEPENDENCIES}
 
-temp:
-	$(MAKE) -C temp/
+game:
+	$(MAKE) -C game/

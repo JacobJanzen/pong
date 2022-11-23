@@ -1,12 +1,12 @@
-.PHONY: all temp display
+.PHONY: all display game
 
-all: temp display ../build
-
-temp: 
-	$(MAKE) -C temp/
+all: display game ../build
 
 display:
 	$(MAKE) -C display/
+
+game:
+	$(MAKE) -C game/
 
 ../build:
 	mkdir -p ../build

@@ -1,6 +1,3 @@
-#include "temp/test_add.h"
+#include "game/test_game.h"
 
-int main() {
-    test_add_one();
-    test_add_two();
-}
+int main() { test_game(); }
