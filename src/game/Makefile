@@ -1,3 +1,4 @@
+CFLAGS=-Wall -Wextra -pedantic -Werror -std=c11 -O2
 .PHONY: all
 
 all: ../../build/game.o

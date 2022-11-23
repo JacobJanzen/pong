@@ -5,7 +5,7 @@
 
 game_state_t *game_state = NULL;
 
-bool init() {
+bool init_game() {
     game_state = malloc(sizeof(game_state_t));
     if (!game_state) {
         perror("failed to create game state");
@@ -24,10 +24,11 @@ game_state_t *get_game_state() {
 }
 
 void update_state(game_update_t *update) {
+    (void)update;
     // Do nothing for now
 }
 
-void cleanup() {
+void cleanup_game() {
     if (game_state)
         free(game_state);
     game_state = NULL;

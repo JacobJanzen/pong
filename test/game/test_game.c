@@ -9,9 +9,9 @@
 #define MAX_DIFF 0.0001
 #define CLOSE_TO(expected, actual) ABS(expected - actual) < MAX_DIFF
 
-void before_each() { init(); }
+void before_each() { init_game(); }
 
-void after_each() { cleanup(); }
+void after_each() { cleanup_game(); }
 
 void test_game_state() {
     before_each();

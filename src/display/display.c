@@ -1,7 +1,6 @@
 #include "../../include/display.h"
+#include "../../include/game.h"
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_rect.h>
-#include <SDL2/SDL_render.h>
 #include <stdio.h>
 
 #define PADDLE_HEIGHT(canvas_height) canvas_height / 6
@@ -90,11 +89,17 @@ void main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
                 return;
         }
 
+        game_state_t *game_state = get_game_state();
+        if (!game_state) {
+            perror("failed to get game state");
+            return;
+        }
+
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
         SDL_RenderClear(renderer);
 
         render_line(renderer, width, height);
-        render_paddle(renderer, width, height, true, 0.5);
+        render_paddle(renderer, width, height, true, game_state->l_paddle_pos);
         render_paddle(renderer, width, height, false, 0.5);
 
         SDL_RenderPresent(renderer);
@@ -105,7 +110,7 @@ bool display(int width, int height) {
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
     if (!init(&window, &renderer, width, height)) {
-        fprintf(stderr, "initialization failed\n");
+        perror("initialization failed");
         return false;
     }
 

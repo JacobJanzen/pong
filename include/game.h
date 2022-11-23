@@ -11,9 +11,9 @@ typedef struct GAME_UPDATE {
     int l_paddle_dir;
 } game_update_t;
 
-bool init();
+bool init_game();
 game_state_t *get_game_state();
 void update_state(game_update_t *update);
-void cleanup();
+void cleanup_game();
 
 #endif
