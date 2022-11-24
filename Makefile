@@ -1,6 +1,7 @@
-CFLAGS=-Wall -Wextra -pedantic -std=c11
+CFLAGS=-Wall -Wextra -pedantic -std=c11 -O2
+export
 
-.PHONY: all clean src app test
+.PHONY: all clean src app test run
 
 all: app
 
@@ -13,6 +14,9 @@ src:
 test: src
 	$(MAKE) -C test/
 	./build/test
+
+run: app
+	./bin/pong
 
 clean:
 	rm -rf bin/ build/

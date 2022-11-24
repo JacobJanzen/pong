@@ -1,4 +1,3 @@
-CFLAGS=-Wall -Wextra -pedantic -std=c11
 .PHONY: all
 
 all: ../../build/display.o

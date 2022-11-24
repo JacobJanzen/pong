@@ -79,58 +79,66 @@ void render_paddle(SDL_Renderer *renderer, int width, int height, bool isLeft,
     SDL_RenderFillRect(renderer, &lPaddle);
 }
 
+void move_paddles(const Uint8 *keys, game_update_t *update) {
+    update->l_paddle_dir = 0;
+    update->r_paddle_dir = 0;
+    if (keys[SDL_SCANCODE_W]) {
+        --update->l_paddle_dir;
+    }
+    if (keys[SDL_SCANCODE_S]) {
+        ++update->l_paddle_dir;
+    }
+    if (keys[SDL_SCANCODE_UP]) {
+        --update->r_paddle_dir;
+    }
+    if (keys[SDL_SCANCODE_DOWN]) {
+        ++update->r_paddle_dir;
+    }
+}
+
+void draw_assets(SDL_Window *window, SDL_Renderer *renderer, int width,
+                 int height, game_state_t *game_state) {
+    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+    SDL_RenderClear(renderer);
+
+    render_line(renderer, width, height);
+    render_paddle(renderer, width, height, true, game_state->l_paddle_pos);
+    render_paddle(renderer, width, height, false, game_state->r_paddle_pos);
+
+    SDL_RenderPresent(renderer);
+    SDL_UpdateWindowSurface(window);
+}
+
 void main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
                int height) {
     SDL_Event e;
 
     SDL_UpdateWindowSurface(window);
     const Uint8 *keys = SDL_GetKeyboardState(NULL);
-
-    game_update_t *update = malloc(sizeof(game_update_t));
-    if (!update) {
-        perror("failed to instantiate update struct");
-        return;
+    if (!keys) {
+        fprintf(stderr, "Could not get keys! SDL_Error: %s\n", SDL_GetError());
     }
-    update->l_paddle_dir = 0;
-    update->r_paddle_dir = 0;
+
+    game_update_t update = {0, 0};
 
     while (true) {
+        SDL_PumpEvents();
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT)
                 return;
             else if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
-                update->l_paddle_dir = 0;
-                update->r_paddle_dir = 0;
-                if (keys[SDL_SCANCODE_W]) {
-                    --update->l_paddle_dir;
-                }
-                if (keys[SDL_SCANCODE_S]) {
-                    ++update->l_paddle_dir;
-                }
-                if (keys[SDL_SCANCODE_UP]) {
-                    --update->r_paddle_dir;
-                }
-                if (keys[SDL_SCANCODE_DOWN]) {
-                    ++update->r_paddle_dir;
-                }
+                move_paddles(keys, &update);
             }
         }
 
-        update_state(update);
+        update_state(&update);
         game_state_t *game_state = get_game_state();
         if (!game_state) {
             perror("failed to get game state");
             return;
         }
 
-        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
-        SDL_RenderClear(renderer);
-
-        render_line(renderer, width, height);
-        render_paddle(renderer, width, height, true, game_state->l_paddle_pos);
-        render_paddle(renderer, width, height, false, game_state->r_paddle_pos);
-
-        SDL_RenderPresent(renderer);
+        draw_assets(window, renderer, width, height, game_state);
     }
 }
 
