@@ -1,7 +1,6 @@
 #include "../../include/display.h"
 #include "../../include/game.h"
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_events.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -29,7 +28,8 @@ bool init(SDL_Window **window, SDL_Renderer **renderer, int width, int height) {
         return false;
     }
 
-    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED);
+    *renderer = SDL_CreateRenderer(
+        *window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!*renderer) {
         fprintf(stderr, "Renderer could not be created! SDL Error: %s\n",
                 SDL_GetError());
@@ -81,35 +81,42 @@ void render_paddle(SDL_Renderer *renderer, int width, int height, bool isLeft,
 
 void main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
                int height) {
-    (void)renderer;
     SDL_Event e;
 
     SDL_UpdateWindowSurface(window);
+    const Uint8 *keys = SDL_GetKeyboardState(NULL);
 
     game_update_t *update = malloc(sizeof(game_update_t));
     if (!update) {
         perror("failed to instantiate update struct");
         return;
     }
+    update->l_paddle_dir = 0;
+    update->r_paddle_dir = 0;
 
     while (true) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT)
                 return;
-            else if (e.type == SDL_KEYDOWN) {
-                switch (e.key.keysym.sym) {
-                case SDLK_w:
-                    update->l_paddle_dir = -1;
-                    break;
-                case SDLK_s:
-                    update->l_paddle_dir = 1;
-                    break;
+            else if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
+                update->l_paddle_dir = 0;
+                update->r_paddle_dir = 0;
+                if (keys[SDL_SCANCODE_W]) {
+                    --update->l_paddle_dir;
+                }
+                if (keys[SDL_SCANCODE_S]) {
+                    ++update->l_paddle_dir;
+                }
+                if (keys[SDL_SCANCODE_UP]) {
+                    --update->r_paddle_dir;
+                }
+                if (keys[SDL_SCANCODE_DOWN]) {
+                    ++update->r_paddle_dir;
                 }
             }
         }
 
         update_state(update);
-        update->l_paddle_dir = 0;
         game_state_t *game_state = get_game_state();
         if (!game_state) {
             perror("failed to get game state");
@@ -121,7 +128,7 @@ void main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
 
         render_line(renderer, width, height);
         render_paddle(renderer, width, height, true, game_state->l_paddle_pos);
-        render_paddle(renderer, width, height, false, 0.5);
+        render_paddle(renderer, width, height, false, game_state->r_paddle_pos);
 
         SDL_RenderPresent(renderer);
     }

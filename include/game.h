@@ -7,10 +7,12 @@
 
 typedef struct GAME_STATE {
     double l_paddle_pos;
+    double r_paddle_pos;
 } game_state_t;
 
 typedef struct GAME_UPDATE {
     int l_paddle_dir;
+    int r_paddle_dir;
 } game_update_t;
 
 bool init_game();
