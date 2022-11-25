@@ -16,9 +16,14 @@
 #include "../../include/display.h"
 #include "../../include/game.h"
 #include "../../include/log.h"
-#include <SDL2/SDL.h>
+#include "../../include/timer.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <SDL2/SDL.h>
+
+#define TICKS_PER_FRAME 1000 / 60
 
 #define DISPLAY_PADDLE_HEIGHT(canvas_height) canvas_height *PADDLE_HEIGHT
 #define DISPLAY_PADDLE_WIDTH(canvas_width) canvas_width / 40
@@ -30,7 +35,8 @@
 
 char g_error_string[256];
 
-void init(SDL_Window **window, SDL_Renderer **renderer, int width, int height) {
+void init(SDL_Window **window, SDL_Renderer **renderer,
+          app_timer_t **frame_timer, int width, int height) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         sprintf(g_error_string, "SDL could not initialize! SDL Error: %s\n",
                 SDL_GetError());
@@ -46,13 +52,17 @@ void init(SDL_Window **window, SDL_Renderer **renderer, int width, int height) {
         log_message(LOG_FATAL, g_error_string);
     }
 
-    *renderer = SDL_CreateRenderer(
-        *window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED);
     if (!*renderer) {
         sprintf(g_error_string,
                 "Renderer could not be created! SDL Error: %s\n",
                 SDL_GetError());
         log_message(LOG_FATAL, g_error_string);
+    }
+
+    *frame_timer = timer_init();
+    if (!frame_timer) {
+        log_message(LOG_FATAL, "failed to initialize frame timer");
     }
 
     SDL_SetRenderDrawColor(*renderer, 0x00, 0x00, 0x00, 0xFF);
@@ -126,9 +136,10 @@ void draw_assets(SDL_Window *window, SDL_Renderer *renderer, int width,
     SDL_UpdateWindowSurface(window);
 }
 
-bool main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
-               int height) {
+bool main_loop(SDL_Window *window, SDL_Renderer *renderer,
+               app_timer_t *frame_timer, int width, int height) {
     SDL_Event e;
+    game_update_t update = {0, 0};
 
     SDL_UpdateWindowSurface(window);
     const Uint8 *keys = SDL_GetKeyboardState(NULL);
@@ -139,10 +150,10 @@ bool main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
         return false;
     }
 
-    game_update_t update = {0, 0};
-
     log_message(LOG_INFO, "Starting main game loop");
     while (true) {
+        timer_start(frame_timer);
+
         SDL_PumpEvents();
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT)
@@ -160,6 +171,12 @@ bool main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
         }
 
         draw_assets(window, renderer, width, height, game_state);
+
+        timer_stop(frame_timer);
+        uint32_t frame_ticks = get_ticks(frame_timer);
+        if (frame_ticks < TICKS_PER_FRAME) {
+            SDL_Delay(TICKS_PER_FRAME - frame_ticks);
+        }
     }
 
     return true;
@@ -168,11 +185,12 @@ bool main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
 bool display(int width, int height) {
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
+    app_timer_t *frame_timer = NULL;
 
-    init(&window, &renderer, width, height);
+    init(&window, &renderer, &frame_timer, width, height);
     log_message(LOG_INFO, "Successfully initialized display");
 
-    if (!main_loop(window, renderer, width, height)) {
+    if (!main_loop(window, renderer, frame_timer, width, height)) {
         return false;
     }
 
