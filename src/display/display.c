@@ -1,5 +1,6 @@
 #include "../../include/display.h"
 #include "../../include/game.h"
+#include "../../include/log.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,33 +13,34 @@
 #define NUM_DOTS 30
 #define DOT_DIAMETER(canvas_height) canvas_height / NUM_DOTS
 
-bool init(SDL_Window **window, SDL_Renderer **renderer, int width, int height) {
+char g_error_string[256];
+
+void init(SDL_Window **window, SDL_Renderer **renderer, int width, int height) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        fprintf(stderr, "SDL could not initialize! SDL Error: %s\n",
+        sprintf(g_error_string, "SDL could not initialize! SDL Error: %s\n",
                 SDL_GetError());
-        return false;
+        log_message(LOG_FATAL, g_error_string);
     }
 
     *window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED,
                                SDL_WINDOWPOS_UNDEFINED, width, height,
                                SDL_WINDOW_SHOWN);
     if (!*window) {
-        fprintf(stderr, "Window could not be created! SDL Error: %s\n",
+        sprintf(g_error_string, "Window could not be created! SDL Error: %s\n",
                 SDL_GetError());
-        return false;
+        log_message(LOG_FATAL, g_error_string);
     }
 
     *renderer = SDL_CreateRenderer(
         *window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!*renderer) {
-        fprintf(stderr, "Renderer could not be created! SDL Error: %s\n",
+        sprintf(g_error_string,
+                "Renderer could not be created! SDL Error: %s\n",
                 SDL_GetError());
-        return false;
+        log_message(LOG_FATAL, g_error_string);
     }
 
     SDL_SetRenderDrawColor(*renderer, 0x00, 0x00, 0x00, 0xFF);
-
-    return true;
 }
 
 void cleanup(SDL_Window **window) {
@@ -109,23 +111,27 @@ void draw_assets(SDL_Window *window, SDL_Renderer *renderer, int width,
     SDL_UpdateWindowSurface(window);
 }
 
-void main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
+bool main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
                int height) {
     SDL_Event e;
 
     SDL_UpdateWindowSurface(window);
     const Uint8 *keys = SDL_GetKeyboardState(NULL);
     if (!keys) {
-        fprintf(stderr, "Could not get keys! SDL_Error: %s\n", SDL_GetError());
+        sprintf(g_error_string, "Could not get keys! SDL Error: %s\n",
+                SDL_GetError());
+        log_message(LOG_ERROR, g_error_string);
+        return false;
     }
 
     game_update_t update = {0, 0};
 
+    log_message(LOG_INFO, "Starting main game loop");
     while (true) {
         SDL_PumpEvents();
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT)
-                return;
+                return true;
             else if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
                 move_paddles(keys, &update);
             }
@@ -134,24 +140,28 @@ void main_loop(SDL_Window *window, SDL_Renderer *renderer, int width,
         update_state(&update);
         game_state_t *game_state = get_game_state();
         if (!game_state) {
-            perror("failed to get game state");
-            return;
+            log_message(LOG_ERROR, "Failed to get game state");
+            return false;
         }
 
         draw_assets(window, renderer, width, height, game_state);
     }
+
+    return true;
 }
 
 bool display(int width, int height) {
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
-    if (!init(&window, &renderer, width, height)) {
-        perror("initialization failed");
+
+    init(&window, &renderer, width, height);
+    log_message(LOG_INFO, "Successfully initialized display");
+
+    if (!main_loop(window, renderer, width, height)) {
         return false;
     }
 
-    main_loop(window, renderer, width, height);
-
+    log_message(LOG_INFO, "Beginning cleanup");
     cleanup(&window);
 
     return true;

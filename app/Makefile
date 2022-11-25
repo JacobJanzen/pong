@@ -1,4 +1,4 @@
-DEPENDENCIES=../build/display.o ../build/game.o
+DEPENDENCIES=../build/display.o ../build/game.o ../build/log.o
 LIBS=-lSDL2
 
 .PHONY: all clean

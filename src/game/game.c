@@ -1,4 +1,5 @@
 #include "../../include/game.h"
+#include "../../include/log.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +11,7 @@ game_state_t *game_state = NULL;
 bool init_game() {
     game_state = malloc(sizeof(game_state_t));
     if (!game_state) {
-        perror("failed to create game state");
+        log_message(LOG_ERROR, "failed to create game state");
         return false;
     }
 
@@ -45,17 +46,6 @@ void move_paddle(int direction, double *position) {
 
 void update_state(game_update_t *update) {
     if (update && game_state) {
-        //        if (update->l_paddle_dir < 0) {
-        //            game_state->l_paddle_pos -= PADDLE_SPEED;
-        //            if (game_state->l_paddle_pos < PADDLE_HEIGHT / 2) {
-        //                game_state->l_paddle_pos = PADDLE_HEIGHT / 2;
-        //            }
-        //        } else if (update->l_paddle_dir > 0) {
-        //            game_state->l_paddle_pos += PADDLE_SPEED;
-        //            if (game_state->l_paddle_pos > 1 - PADDLE_HEIGHT / 2) {
-        //                game_state->l_paddle_pos = 1 - PADDLE_HEIGHT / 2;
-        //            }
-        //        }
         move_paddle(update->l_paddle_dir, &game_state->l_paddle_pos);
         move_paddle(update->r_paddle_dir, &game_state->r_paddle_pos);
     }
