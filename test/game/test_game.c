@@ -6,17 +6,17 @@
 
 #define MAX_DIFF 0.0001
 
-double abs_double(double x) { return x > 0 ? x : -x; }
+static double abs_double(double x) { return x > 0 ? x : -x; }
 
-bool close_to(double expected, double actual) {
+static bool close_to(double expected, double actual) {
     return abs_double(expected - actual) < MAX_DIFF;
 }
 
-void before_each() { init_game(); }
+static void before_each() { init_game(); }
 
-void after_each() { cleanup_game(); }
+static void after_each() { cleanup_game(); }
 
-void test_game_state() {
+static void test_game_state() {
     before_each();
 
     game_state_t *game_state = get_game_state();
@@ -27,7 +27,7 @@ void test_game_state() {
     after_each();
 }
 
-void test_move_paddle() {
+static void test_move_paddle() {
     before_each();
 
     game_state_t *game_state = get_game_state();
@@ -57,7 +57,7 @@ void test_move_paddle() {
     after_each();
 }
 
-void test_stop_paddle_at_border() {
+static void test_stop_paddle_at_border() {
     before_each();
 
     game_state_t *game_state = get_game_state();

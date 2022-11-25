@@ -1,8 +1,8 @@
 export
 
-.PHONY: all display game log
+.PHONY: all display game log timer
 
-all: display game log ../build
+all: display game log timer ../build
 
 display:
 	$(MAKE) -C display/
@@ -12,6 +12,9 @@ game:
 
 log:
 	$(MAKE) -C log/
+
+timer:
+	$(MAKE) -C timer/
 
 ../build:
 	mkdir -p ../build
