@@ -16,29 +16,39 @@
 #include "../../include/game.h"
 #include "../../include/log.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define PADDLE_SPEED 0.015
+#define MIN_BALL_X_VELOCITY 0.005
 
 game_state_t *game_state = NULL;
 
-bool init_game() {
+static double rand_double(double low, double high) {
+    return ((double)rand() * (high - low)) / (double)RAND_MAX + low;
+}
+
+game_state_t *init_game() {
+    srand(time(NULL));
     game_state = malloc(sizeof(game_state_t));
     if (!game_state) {
         log_message(LOG_ERROR, "failed to create game state");
-        return false;
+        return NULL;
     }
+
+    int x_dir = (rand() & 1) == 0 ? -1 : 1;
+    int y_dir = (rand() & 1) == 0 ? -1 : 1;
 
     game_state->l_paddle_pos = 0.5;
     game_state->r_paddle_pos = 0.5;
+    game_state->ball_x_pos = 0.5;
+    game_state->ball_y_pos = 0.5;
+    game_state->ball_x_velocity = MIN_BALL_X_VELOCITY * x_dir;
+    game_state->ball_y_velocity =
+        rand_double(0, MIN_BALL_X_VELOCITY * 2) * y_dir;
 
-    return true;
-}
-
-game_state_t *get_game_state() {
-    if (!game_state)
-        return NULL;
     return game_state;
 }
 
@@ -64,6 +74,15 @@ void update_state(game_update_t *update) {
         move_paddle(update->l_paddle_dir, &game_state->l_paddle_pos);
         move_paddle(update->r_paddle_dir, &game_state->r_paddle_pos);
     }
+
+    double new_y_pos = game_state->ball_y_pos + game_state->ball_y_velocity;
+    if (new_y_pos - BALL_RADIUS <= 0 || new_y_pos + BALL_RADIUS >= 1) {
+        game_state->ball_y_velocity = -game_state->ball_y_velocity;
+        game_state->ball_y_pos += game_state->ball_y_velocity;
+    } else {
+        game_state->ball_y_pos = new_y_pos;
+    }
+    game_state->ball_x_pos += game_state->ball_x_velocity;
 }
 
 void cleanup_game() {

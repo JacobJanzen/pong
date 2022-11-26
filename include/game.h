@@ -19,10 +19,18 @@
 #include <stdbool.h>
 
 #define PADDLE_HEIGHT 1.0 / 6.0
+#define PADDLE_WIDTH 1.0 / 40.0
+#define SPACE_BEHIND_PADDLE 1.0 / 30.0
+#define BALL_RADIUS 1.0 / 100.0
 
 typedef struct GAME_STATE {
     double l_paddle_pos;
     double r_paddle_pos;
+
+    double ball_x_pos;
+    double ball_y_pos;
+    double ball_x_velocity;
+    double ball_y_velocity;
 } game_state_t;
 
 typedef struct GAME_UPDATE {
@@ -30,8 +38,7 @@ typedef struct GAME_UPDATE {
     int r_paddle_dir;
 } game_update_t;
 
-bool init_game();
-game_state_t *get_game_state();
+game_state_t *init_game();
 void update_state(game_update_t *update);
 void cleanup_game();
 

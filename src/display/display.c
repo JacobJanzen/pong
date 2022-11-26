@@ -33,80 +33,119 @@
 #define NUM_DOTS 30
 #define DOT_DIAMETER(canvas_height) canvas_height / NUM_DOTS
 
+#define DISPLAY_BALL_RADIUS(canvas_width) canvas_width *BALL_RADIUS
+
 char g_error_string[256];
 
-void init(SDL_Window **window, SDL_Renderer **renderer,
-          app_timer_t **frame_timer, int width, int height) {
+typedef struct GAME {
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    app_timer_t *frame_timer;
+    game_state_t *game_state;
+    int width;
+    int height;
+} game_t;
+
+static void init(game_t *game) {
+    log_message(LOG_INFO, "Initializing video...");
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         sprintf(g_error_string, "SDL could not initialize! SDL Error: %s\n",
                 SDL_GetError());
         log_message(LOG_FATAL, g_error_string);
     }
+    log_message(LOG_INFO, "Successfully initialized video");
 
-    *window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED,
-                               SDL_WINDOWPOS_UNDEFINED, width, height,
-                               SDL_WINDOW_SHOWN);
-    if (!*window) {
+    log_message(LOG_INFO, "Initializing window...");
+    game->window = SDL_CreateWindow("Pong", SDL_WINDOWPOS_UNDEFINED,
+                                    SDL_WINDOWPOS_UNDEFINED, game->width,
+                                    game->height, SDL_WINDOW_SHOWN);
+    if (!game->window) {
         sprintf(g_error_string, "Window could not be created! SDL Error: %s\n",
                 SDL_GetError());
         log_message(LOG_FATAL, g_error_string);
     }
+    log_message(LOG_INFO, "Successfully initialized window");
 
-    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED);
-    if (!*renderer) {
+    log_message(LOG_INFO, "Initializing renderer...");
+    game->renderer =
+        SDL_CreateRenderer(game->window, -1, SDL_RENDERER_ACCELERATED);
+    if (!game->renderer) {
         sprintf(g_error_string,
                 "Renderer could not be created! SDL Error: %s\n",
                 SDL_GetError());
         log_message(LOG_FATAL, g_error_string);
     }
+    log_message(LOG_INFO, "Successfully initialized renderer");
 
-    *frame_timer = timer_init();
-    if (!frame_timer) {
+    log_message(LOG_INFO, "Initializing timer...");
+    game->frame_timer = timer_init();
+    if (!game->frame_timer) {
         log_message(LOG_FATAL, "failed to initialize frame timer");
     }
+    log_message(LOG_INFO, "Successfully initialized timer");
 
-    SDL_SetRenderDrawColor(*renderer, 0x00, 0x00, 0x00, 0xFF);
+    log_message(LOG_INFO, "Initializing game state...");
+    game->game_state = init_game();
+    if (!game->game_state) {
+        log_message(LOG_FATAL, "failed to initialize game state");
+    }
+    log_message(LOG_INFO, "Successfully initialized game state");
+
+    SDL_SetRenderDrawColor(game->renderer, 0x00, 0x00, 0x00, 0xFF);
 }
 
-void cleanup(SDL_Window **window) {
-    SDL_DestroyWindow(*window);
-    *window = NULL;
+static void cleanup(game_t *game) {
+    SDL_DestroyWindow(game->window);
+    game->window = NULL;
+    cleanup_game();
 
     SDL_Quit();
 }
 
-void render_line(SDL_Renderer *renderer, int width, int height) {
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+static void render_line(game_t *game) {
+    SDL_SetRenderDrawColor(game->renderer, 0xFF, 0xFF, 0xFF, 0xFF);
     for (int i = 0; i < NUM_DOTS / 2; i++) {
         SDL_Rect dot = {
-            width / 2 - DOT_DIAMETER(height) / 2,
-            i * 2 * DOT_DIAMETER(height),
-            DOT_DIAMETER(height),
-            DOT_DIAMETER(height),
+            game->width / 2 - DOT_DIAMETER(game->height) / 2,
+            i * 2 * DOT_DIAMETER(game->height),
+            DOT_DIAMETER(game->height),
+            DOT_DIAMETER(game->height),
         };
-        SDL_RenderFillRect(renderer, &dot);
+        SDL_RenderFillRect(game->renderer, &dot);
     }
 }
 
-void render_paddle(SDL_Renderer *renderer, int width, int height, bool isLeft,
-                   double pos) {
+static void render_paddle(game_t *game, bool is_left, double pos) {
 
-    int xPos = isLeft
-                   ? PADDLE_X_POS(width)
-                   : width - PADDLE_X_POS(width) - DISPLAY_PADDLE_WIDTH(width);
-    int yPos = (int)(height * pos) - height / 12;
+    int xPos = is_left ? PADDLE_X_POS(game->width)
+                       : game->width - PADDLE_X_POS(game->width) -
+                             DISPLAY_PADDLE_WIDTH(game->width);
+    int yPos = (int)(game->height * pos) - game->height / 12;
 
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-    SDL_Rect lPaddle = {
+    SDL_SetRenderDrawColor(game->renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+    SDL_Rect paddle = {
         xPos,
         yPos,
-        DISPLAY_PADDLE_WIDTH(width),
-        DISPLAY_PADDLE_HEIGHT(height),
+        DISPLAY_PADDLE_WIDTH(game->width),
+        DISPLAY_PADDLE_HEIGHT(game->height),
     };
-    SDL_RenderFillRect(renderer, &lPaddle);
+    SDL_RenderFillRect(game->renderer, &paddle);
 }
 
-void move_paddles(const Uint8 *keys, game_update_t *update) {
+static void render_ball(game_t *game, double x_pos, double y_pos) {
+    int x_pos_disp = game->width * x_pos;
+    int y_pos_disp = game->height * y_pos;
+    SDL_SetRenderDrawColor(game->renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+    SDL_Rect ball = {
+        x_pos_disp - DISPLAY_BALL_RADIUS(game->width),
+        y_pos_disp - DISPLAY_BALL_RADIUS(game->width),
+        DISPLAY_BALL_RADIUS(game->width) * 2,
+        DISPLAY_BALL_RADIUS(game->width) * 2,
+    };
+    SDL_RenderFillRect(game->renderer, &ball);
+}
+
+static void move_paddles(const Uint8 *keys, game_update_t *update) {
     update->l_paddle_dir = 0;
     update->r_paddle_dir = 0;
     if (keys[SDL_SCANCODE_W]) {
@@ -123,25 +162,25 @@ void move_paddles(const Uint8 *keys, game_update_t *update) {
     }
 }
 
-void draw_assets(SDL_Window *window, SDL_Renderer *renderer, int width,
-                 int height, game_state_t *game_state) {
-    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
-    SDL_RenderClear(renderer);
+static void draw_assets(game_t *game) {
+    SDL_SetRenderDrawColor(game->renderer, 0x00, 0x00, 0x00, 0xFF);
+    SDL_RenderClear(game->renderer);
 
-    render_line(renderer, width, height);
-    render_paddle(renderer, width, height, true, game_state->l_paddle_pos);
-    render_paddle(renderer, width, height, false, game_state->r_paddle_pos);
+    render_line(game);
+    render_paddle(game, true, game->game_state->l_paddle_pos);
+    render_paddle(game, false, game->game_state->r_paddle_pos);
+    render_ball(game, game->game_state->ball_x_pos,
+                game->game_state->ball_y_pos);
 
-    SDL_RenderPresent(renderer);
-    SDL_UpdateWindowSurface(window);
+    SDL_RenderPresent(game->renderer);
+    SDL_UpdateWindowSurface(game->window);
 }
 
-bool main_loop(SDL_Window *window, SDL_Renderer *renderer,
-               app_timer_t *frame_timer, int width, int height) {
+static bool main_loop(game_t *game) {
     SDL_Event e;
     game_update_t update = {0, 0};
 
-    SDL_UpdateWindowSurface(window);
+    SDL_UpdateWindowSurface(game->window);
     const Uint8 *keys = SDL_GetKeyboardState(NULL);
     if (!keys) {
         sprintf(g_error_string, "Could not get keys! SDL Error: %s\n",
@@ -152,7 +191,7 @@ bool main_loop(SDL_Window *window, SDL_Renderer *renderer,
 
     log_message(LOG_INFO, "Starting main game loop");
     while (true) {
-        timer_start(frame_timer);
+        timer_start(game->frame_timer);
 
         SDL_PumpEvents();
         while (SDL_PollEvent(&e)) {
@@ -164,16 +203,11 @@ bool main_loop(SDL_Window *window, SDL_Renderer *renderer,
         }
 
         update_state(&update);
-        game_state_t *game_state = get_game_state();
-        if (!game_state) {
-            log_message(LOG_ERROR, "Failed to get game state");
-            return false;
-        }
 
-        draw_assets(window, renderer, width, height, game_state);
+        draw_assets(game);
 
-        timer_stop(frame_timer);
-        uint32_t frame_ticks = get_ticks(frame_timer);
+        timer_stop(game->frame_timer);
+        uint32_t frame_ticks = get_ticks(game->frame_timer);
         if (frame_ticks < TICKS_PER_FRAME) {
             SDL_Delay(TICKS_PER_FRAME - frame_ticks);
         }
@@ -183,19 +217,22 @@ bool main_loop(SDL_Window *window, SDL_Renderer *renderer,
 }
 
 bool display(int width, int height) {
-    SDL_Window *window = NULL;
-    SDL_Renderer *renderer = NULL;
-    app_timer_t *frame_timer = NULL;
+    game_t game = {
+        .height = height,
+        .width = width,
+    };
 
-    init(&window, &renderer, &frame_timer, width, height);
-    log_message(LOG_INFO, "Successfully initialized display");
+    log_message(LOG_INFO, "Initializing game...");
+    init(&game);
+    log_message(LOG_INFO, "Successfully initialized game");
 
-    if (!main_loop(window, renderer, frame_timer, width, height)) {
+    if (!main_loop(&game)) {
         return false;
     }
 
-    log_message(LOG_INFO, "Beginning cleanup");
-    cleanup(&window);
+    log_message(LOG_INFO, "Cleaning up game...");
+    cleanup(&game);
+    log_message(LOG_INFO, "Successfully cleaned up game");
 
     return true;
 }

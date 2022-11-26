@@ -1,6 +1,6 @@
 TEST_DEPENDENCIES=../build/test_game.o ../build/test_timer.o
 DEPENDENCIES=../build/game.o ../build/timer.o ../build/log.o
-LIBS=-lSDL2
+LIBS=-lSDL2 -lm
 
 .PHONY: all game timer
 

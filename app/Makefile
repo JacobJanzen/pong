@@ -1,5 +1,5 @@
 DEPENDENCIES=../build/display.o ../build/game.o ../build/log.o ../build/timer.o
-LIBS=-lSDL2
+LIBS=-lSDL2 -lm
 
 .PHONY: all clean
 
