@@ -30,6 +30,21 @@ static double rand_double(double low, double high) {
     return ((double)rand() * (high - low)) / (double)RAND_MAX + low;
 }
 
+static bool hit_paddle(double x_pos, double y_pos) {
+    if ((x_pos > 0.5 &&
+         (y_pos + BALL_RADIUS < game_state->r_paddle_pos - PADDLE_HEIGHT / 2 ||
+          y_pos - BALL_RADIUS >
+              game_state->r_paddle_pos + PADDLE_HEIGHT / 2)) ||
+        (x_pos < 0.5 &&
+         (y_pos + BALL_RADIUS < game_state->l_paddle_pos - PADDLE_HEIGHT / 2 ||
+          y_pos - BALL_RADIUS > game_state->l_paddle_pos + PADDLE_HEIGHT / 2)))
+        return false;
+    return (x_pos - BALL_RADIUS < SPACE_BEHIND_PADDLE + PADDLE_WIDTH &&
+            x_pos - BALL_RADIUS > SPACE_BEHIND_PADDLE) ||
+           (x_pos + BALL_RADIUS > 1 - SPACE_BEHIND_PADDLE - PADDLE_WIDTH &&
+            x_pos + BALL_RADIUS < 1 - SPACE_BEHIND_PADDLE);
+}
+
 static void spawn_ball() {
     int x_dir = (rand() & 1) == 0 ? -1 : 1;
     int y_dir = (rand() & 1) == 0 ? -1 : 1;
@@ -89,6 +104,9 @@ void update_state(game_update_t *update) {
     double new_x_pos = game_state->ball_x_pos + game_state->ball_x_velocity;
     if (new_x_pos - BALL_RADIUS <= 0 || new_x_pos + BALL_RADIUS >= 1) {
         spawn_ball();
+    } else if (hit_paddle(new_x_pos, new_y_pos)) {
+        game_state->ball_x_velocity = -game_state->ball_x_velocity;
+        game_state->ball_x_pos += game_state->ball_x_velocity;
     } else {
         game_state->ball_x_pos = new_x_pos;
     }

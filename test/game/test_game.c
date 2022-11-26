@@ -148,6 +148,46 @@ static void test_ball_respawns_after_reaching_edge() {
     after_each();
 }
 
+static void test_ball_bounces_off_paddle() {
+    before_each();
+
+    game_update_t update = {0, 0};
+
+    game_state->ball_x_pos = SPACE_BEHIND_PADDLE + PADDLE_WIDTH;
+    game_state->ball_x_velocity = -0.01;
+    update_state(&update);
+    assert(SPACE_BEHIND_PADDLE + PADDLE_WIDTH < game_state->ball_x_pos);
+
+    game_state->ball_x_pos = 1 - SPACE_BEHIND_PADDLE - PADDLE_WIDTH;
+    game_state->ball_x_velocity = 0.01;
+    update_state(&update);
+    assert(1 - SPACE_BEHIND_PADDLE - PADDLE_WIDTH > game_state->ball_x_pos);
+
+    after_each();
+}
+
+static void test_ball_passes_paddle() {
+    before_each();
+
+    game_update_t update = {0, 0};
+
+    game_state->ball_x_pos = SPACE_BEHIND_PADDLE + PADDLE_WIDTH;
+    game_state->ball_x_velocity = -0.01;
+    game_state->ball_y_velocity = 0;
+    game_state->l_paddle_pos = 0;
+    update_state(&update);
+    assert(SPACE_BEHIND_PADDLE + PADDLE_WIDTH > game_state->ball_x_pos);
+
+    game_state->ball_x_pos = 1 - SPACE_BEHIND_PADDLE - PADDLE_WIDTH;
+    game_state->ball_x_velocity = 0.01;
+    game_state->ball_y_velocity = 0;
+    game_state->r_paddle_pos = 0;
+    update_state(&update);
+    assert(1 - SPACE_BEHIND_PADDLE - PADDLE_WIDTH < game_state->ball_x_pos);
+
+    after_each();
+}
+
 void test_game() {
     test_move_paddle();
     test_stop_paddle_at_border();
@@ -155,4 +195,6 @@ void test_game() {
     test_ball_moves();
     test_ball_bounces_off_horizontal_borders();
     test_ball_respawns_after_reaching_edge();
+    test_ball_bounces_off_paddle();
+    test_ball_passes_paddle();
 }
