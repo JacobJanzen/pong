@@ -30,6 +30,16 @@ static double rand_double(double low, double high) {
     return ((double)rand() * (high - low)) / (double)RAND_MAX + low;
 }
 
+static void spawn_ball() {
+    int x_dir = (rand() & 1) == 0 ? -1 : 1;
+    int y_dir = (rand() & 1) == 0 ? -1 : 1;
+    game_state->ball_x_pos = 0.5;
+    game_state->ball_y_pos = 0.5;
+    game_state->ball_x_velocity = MIN_BALL_X_VELOCITY * x_dir;
+    game_state->ball_y_velocity =
+        rand_double(0, MIN_BALL_X_VELOCITY * 2) * y_dir;
+}
+
 game_state_t *init_game() {
     srand(time(NULL));
     game_state = malloc(sizeof(game_state_t));
@@ -38,16 +48,9 @@ game_state_t *init_game() {
         return NULL;
     }
 
-    int x_dir = (rand() & 1) == 0 ? -1 : 1;
-    int y_dir = (rand() & 1) == 0 ? -1 : 1;
-
     game_state->l_paddle_pos = 0.5;
     game_state->r_paddle_pos = 0.5;
-    game_state->ball_x_pos = 0.5;
-    game_state->ball_y_pos = 0.5;
-    game_state->ball_x_velocity = MIN_BALL_X_VELOCITY * x_dir;
-    game_state->ball_y_velocity =
-        rand_double(0, MIN_BALL_X_VELOCITY * 2) * y_dir;
+    spawn_ball();
 
     return game_state;
 }
@@ -82,7 +85,13 @@ void update_state(game_update_t *update) {
     } else {
         game_state->ball_y_pos = new_y_pos;
     }
-    game_state->ball_x_pos += game_state->ball_x_velocity;
+
+    double new_x_pos = game_state->ball_x_pos + game_state->ball_x_velocity;
+    if (new_x_pos - BALL_RADIUS <= 0 || new_x_pos + BALL_RADIUS >= 1) {
+        spawn_ball();
+    } else {
+        game_state->ball_x_pos = new_x_pos;
+    }
 }
 
 void cleanup_game() {

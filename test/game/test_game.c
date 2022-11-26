@@ -132,10 +132,27 @@ static void test_ball_bounces_off_horizontal_borders() {
     after_each();
 }
 
+static void test_ball_respawns_after_reaching_edge() {
+    before_each();
+
+    game_update_t update = {0, 0};
+
+    game_state->ball_x_pos = 0;
+    update_state(&update);
+    assert(close_to(0.5, game_state->ball_x_pos));
+
+    game_state->ball_x_pos = 1;
+    update_state(&update);
+    assert(close_to(0.5, game_state->ball_x_pos));
+
+    after_each();
+}
+
 void test_game() {
     test_move_paddle();
     test_stop_paddle_at_border();
     test_game_state();
     test_ball_moves();
     test_ball_bounces_off_horizontal_borders();
+    test_ball_respawns_after_reaching_edge();
 }
